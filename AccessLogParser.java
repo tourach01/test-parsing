@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,9 +62,10 @@ public class AccessLogParser {
             if (operation == 0) { // Vérifier si l'opération est un "BIND"
                 String bindDn = extractBindDn(logEntry);
                 String sourceIp = extractSourceIp(logEntry);
+                String sourceDns = resolveDns(sourceIp);
                 System.out.println("Timestamp: " + timestamp + " | Connection: " + connection +
                         " | Operation: " + operation + " | Message ID: " + messageId +
-                        " | BIND DN: " + bindDn + " | Source IP: " + sourceIp);
+                        " | BIND DN: " + bindDn + " | Source IP: " + sourceIp + " | Source DNS: " + sourceDns);
             }
         }
     }
@@ -80,6 +82,16 @@ public class AccessLogParser {
         Matcher matcher = Pattern.compile(SOURCE_IP_REGEX).matcher(logEntry);
         if (matcher.find()) {
             return matcher.group(1);
+        }
+        return "";
+    }
+
+    private static String resolveDns(String ipAddress) {
+        try {
+            InetAddress inetAddress = InetAddress.getByName(ipAddress);
+            return inetAddress.getHostName();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return "";
     }
