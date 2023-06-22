@@ -12,6 +12,7 @@ public class AccessLogParser {
     private static final Pattern LOG_PATTERN = Pattern.compile(LOG_REGEX);
     private static final String BIND_REGEX = "BIND dn=\"(.*?)\"";
     private static final String SOURCE_IP_REGEX = "connection.*?from (\\d+\\.\\d+\\.\\d+\\.\\d+)";
+    private static final String LINE_SEPARATOR = System.lineSeparator();
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -29,16 +30,27 @@ public class AccessLogParser {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(logFilePath), 8192)) {
+            StringBuilder logEntryBuilder = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null) {
-                parseLogEntry(line);
+                if (line.isEmpty()) {
+                    processLogEntry(logEntryBuilder.toString());
+                    logEntryBuilder.setLength(0); // Réinitialiser le contenu du StringBuilder
+                } else {
+                    logEntryBuilder.append(line).append(LINE_SEPARATOR);
+                }
+            }
+
+            // Traiter la dernière entrée du journal si elle n'est pas vide
+            if (logEntryBuilder.length() > 0) {
+                processLogEntry(logEntryBuilder.toString());
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static void parseLogEntry(String logEntry) {
+    private static void processLogEntry(String logEntry) {
         Matcher matcher = LOG_PATTERN.matcher(logEntry);
         if (matcher.find()) {
             String timestamp = matcher.group(1);
@@ -50,8 +62,8 @@ public class AccessLogParser {
                 String bindDn = extractBindDn(logEntry);
                 String sourceIp = extractSourceIp(logEntry);
                 System.out.println("Timestamp: " + timestamp + " | Connection: " + connection +
-                                   " | Operation: " + operation + " | Message ID: " + messageId +
-                                   " | BIND DN: " + bindDn + " | Source IP: " + sourceIp);
+                        " | Operation: " + operation + " | Message ID: " + messageId +
+                        " | BIND DN: " + bindDn + " | Source IP: " + sourceIp);
             }
         }
     }
